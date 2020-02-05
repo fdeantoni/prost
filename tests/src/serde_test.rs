@@ -96,7 +96,7 @@ fn test_well_known_types_serde_deserialize_any_string() {
            }"#;
     let any: prost_types::Any = serde_json::from_str(data).unwrap();
     println!("Deserialized any from string: {:?}", any);
-    let foo: Foo = any.unpack(Foo::default()).unwrap();
+    let foo: Foo = any.unpack_as(Foo::default()).unwrap();
     println!("Unpacked Any: {:?}", &foo);
     assert_eq!(foo.list, vec!["een", "twee"])
 }
@@ -126,6 +126,23 @@ fn test_well_known_types_serde_serialize_deserialize() {
     let back: Foo = serde_json::from_str(&json).unwrap();
     println!("Deserialized Foo: {:?}", &back);
     assert_eq!(back, original)
+}
+
+#[test]
+fn test_well_known_types_serde_unpack() {
+    let payload = Foo {
+        string: String::from("hello payload"),
+        timestamp: None,
+        boolean: false,
+        data: None,
+        list: vec!["een".to_string(), "twee".to_string()],
+        payload: None
+    };
+    let any = prost_types::Any::pack(payload);
+    let unpacked = any.unpack().unwrap();
+    let foo = unpacked.downcast_ref::<Foo>().unwrap();
+    println!("Unpacked: {:?}", foo);
+    assert_eq!(foo.string, "hello payload");
 }
 
 

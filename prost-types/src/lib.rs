@@ -134,6 +134,11 @@ impl Timestamp {
         ts
     }
 
+    pub fn to_datetime(&self) -> DateTime<Utc> {
+        let dt = NaiveDateTime::from_timestamp(self.seconds, self.nanos as u32);
+        DateTime::from_utc(dt, Utc)
+    }
+
 }
 
 /// Converts a `std::time::SystemTime` to a `Timestamp`.
@@ -171,6 +176,26 @@ impl TryFrom<Timestamp> for time::SystemTime {
     }
 }
 
+/// Converts chrono's `NaiveDateTime` to `Timestamp`..
+impl From<NaiveDateTime> for Timestamp {
+    fn from(dt: NaiveDateTime) -> Self {
+        Timestamp {
+            seconds: dt.timestamp(),
+            nanos: dt.timestamp_subsec_nanos() as i32
+        }
+    }
+}
+
+/// Converts chrono's `DateTime<UTtc>` to `Timestamp`..
+impl From<DateTime<Utc>> for Timestamp {
+    fn from(dt: DateTime<Utc>) -> Self {
+        Timestamp {
+            seconds: dt.timestamp(),
+            nanos: dt.timestamp_subsec_nanos() as i32
+        }
+    }
+}
+
 impl Serialize for Timestamp {
     fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error> where
         S: Serializer {
@@ -179,9 +204,8 @@ impl Serialize for Timestamp {
             nanos: self.nanos
         };
         ts.normalize();
-        let dt = chrono::NaiveDateTime::from_timestamp(self.seconds, self.nanos as u32);
-        let utc: DateTime<Utc> = chrono::DateTime::from_utc(dt, chrono::Utc);
-        serializer.serialize_str(format!("{:?}", utc).as_str())
+        let dt = ts.to_datetime();
+        serializer.serialize_str(format!("{:?}", dt).as_str())
     }
 }
 
@@ -203,10 +227,7 @@ impl<'de> Deserialize<'de> for Timestamp  {
                     E: de::Error,
             {
                 let utc: DateTime<Utc> = chrono::DateTime::from_str(value).unwrap();
-                let ts = Timestamp {
-                    seconds: utc.timestamp(),
-                    nanos: utc.timestamp_subsec_nanos() as i32
-                };
+                let ts = Timestamp::from(utc);
                 Ok(ts)
             }
         }
@@ -528,6 +549,7 @@ impl<'de> Deserialize<'de> for Value {
 
 use prost::MessageSerde;
 use serde_json::json;
+use std::error::Error;
 
 impl Any {
     // A type_url can take the format of `type.googleapis.com/package_name.struct_name`
@@ -546,22 +568,34 @@ impl Any {
         }
     }
 
-    pub fn unpack<T: prost::Message>(self, mut target: T) -> Result<T, prost::DecodeError> {
+    pub fn unpack_as<T: prost::Message>(self, mut target: T) -> Result<T, prost::DecodeError> {
         let mut cursor = std::io::Cursor::new(self.value.as_slice());
         target.merge(&mut cursor).map(|_| target)
+    }
+
+    pub fn unpack(self) -> Result<Box<dyn prost::MessageSerde>, prost::DecodeError> {
+        let type_url = self.type_url.clone();
+        let empty = json!({
+            "@type": &type_url,
+            "value": {}
+        });
+        let template: Box<dyn MessageSerde> = serde_json::from_value(empty)
+            .map_err(|error| {
+                let description = format!(
+                    "Failed to deserialize {}. Make sure it implements Serialize and Deserialize. Error reported: {}",
+                    type_url,
+                    error.description()
+                );
+                prost::DecodeError::new(description)
+            })?;
+        template.new_instance(self.value.clone())
     }
 }
 
 impl Serialize for Any {
     fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error> where
         S: Serializer {
-        let type_url = self.type_url.clone();
-        let empty = json!({
-            "@type": type_url,
-            "value": {}
-        });
-        let template: Box<dyn MessageSerde> = serde_json::from_value(empty).unwrap();
-        match template.new_instance(self.value.clone()) {
+        match self.clone().unpack() {
             Ok(result) => {
                 serde::ser::Serialize::serialize(result.as_ref(), serializer)
             },
@@ -571,9 +605,7 @@ impl Serialize for Any {
                 state.serialize_field("value", &self.value)?;
                 state.end()
             }
-
         }
-
     }
 }
 

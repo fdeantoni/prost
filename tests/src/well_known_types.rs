@@ -73,7 +73,7 @@ fn test_well_known_types_any() {
     };
     let any = Any::pack(msg.clone());
     println!("{:?}", any);
-    let unpacked = any.unpack(Foo::default()).unwrap();
+    let unpacked = any.unpack_as(Foo::default()).unwrap();
     println!("{:?}", unpacked);
     assert_eq!(unpacked, msg)
 }
@@ -89,7 +89,7 @@ fn test_well_known_types_any_with_downcast() {
     };
     let any = Any::pack(msg.clone());
     println!("{:?}", any);
-    let unpacked: &dyn prost::Message = &any.unpack(Foo::default()).unwrap();
+    let unpacked: &dyn prost::Message = &any.unpack_as(Foo::default()).unwrap();
     let downcast = unpacked.downcast_ref::<Foo>().unwrap();
     assert_eq!(downcast, &msg);
 }

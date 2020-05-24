@@ -11,7 +11,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use core::borrow::Cow;
+use std::borrow::Cow;
 use core::convert::TryFrom;
 use core::i32;
 use core::i64;
@@ -19,7 +19,7 @@ use core::time;
 
 use chrono::prelude::*;
 
-use std::fmt;
+use core::fmt;
 use serde::ser::{Serialize, Serializer, SerializeSeq, SerializeMap, SerializeStruct};
 use serde::de::{self, Deserialize, Deserializer, Visitor, SeqAccess, MapAccess};
 use std::collections::BTreeMap;
@@ -334,10 +334,9 @@ impl TryFrom<Value> for f64 {
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value.kind {
             Some(value::Kind::NumberValue(num)) => Ok(num),
-            Some(other) => Err(ValueError::new(format!(
-                "Cannot convert to f64 because this is not a ValueNumber. We got instead a {:?}",
-                other
-            ))),
+            Some(_other) => Err(ValueError::new(
+                "Cannot convert to f64 because this is not a ValueNumber."
+            )),
             _ => Err(ValueError::new(
                 "Conversion to f64 failed because value is empty!",
             )),
@@ -358,10 +357,9 @@ impl TryFrom<Value> for String {
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value.kind {
             Some(value::Kind::StringValue(string)) => Ok(string),
-            Some(other) => Err(ValueError::new(format!(
-                "Cannot convert to String because this is not a StringValue. We got instead a {:?}",
-                other
-            ))),
+            Some(_other) => Err(ValueError::new(
+                "Cannot convert to String because this is not a StringValue."
+            )),
             _ => Err(ValueError::new(
                 "Conversion to String failed because value is empty!",
             )),
@@ -382,10 +380,9 @@ impl TryFrom<Value> for bool {
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value.kind {
             Some(value::Kind::BoolValue(b)) => Ok(b),
-            Some(other) => Err(ValueError::new(format!(
-                "Cannot convert to bool because this is not a BoolValue. We got instead a {:?}",
-                other
-            ))),
+            Some(_other) => Err(ValueError::new(
+                "Cannot convert to bool because this is not a BoolValue."
+            )),
             _ => Err(ValueError::new(
                 "Conversion to bool failed because value is empty!",
             )),
@@ -407,10 +404,9 @@ impl TryFrom<Value> for std::collections::BTreeMap<std::string::String, Value> {
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value.kind {
             Some(value::Kind::StructValue(s)) => Ok(s.fields),
-            Some(other) => Err(ValueError::new(format!(
-                "Cannot convert to BTreeMap<String, Value> because this is not a StructValue. We got instead a {:?}",
-                other
-            ))),
+            Some(_other) => Err(ValueError::new(
+                "Cannot convert to BTreeMap<String, Value> because this is not a StructValue."
+            )),
             _ => Err(ValueError::new(
                 "Conversion to BTreeMap<String, Value> failed because value is empty!",
             )),
@@ -432,10 +428,9 @@ impl TryFrom<Value> for std::vec::Vec<Value> {
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value.kind {
             Some(value::Kind::ListValue(list)) => Ok(list.values),
-            Some(other) => Err(ValueError::new(format!(
-                "Cannot convert to Vec<Value> because this is not a ListValue. We got instead a {:?}",
-                other
-            ))),
+            Some(_other) => Err(ValueError::new(
+                "Cannot convert to Vec<Value> because this is not a ListValue."
+            )),
             _ => Err(ValueError::new(
                 "Conversion to Vec<Value> failed because value is empty!",
             )),
@@ -573,7 +568,6 @@ impl<'de> Deserialize<'de> for Value {
 
 use prost::MessageSerde;
 use serde_json::json;
-use std::error::Error;
 
 impl Any {
     // A type_url can take the format of `type.googleapis.com/package_name.struct_name`
@@ -608,7 +602,7 @@ impl Any {
                 let description = format!(
                     "Failed to deserialize {}. Make sure it implements Serialize and Deserialize. Error reported: {}",
                     type_url,
-                    error.description()
+                    error.to_string()
                 );
                 prost::DecodeError::new(description)
             })?;

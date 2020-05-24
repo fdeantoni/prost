@@ -1,6 +1,6 @@
 [package]
 name = "prost"
-version = "0.6.0"
+version = "0.6.1"
 authors = ["Dan Burkert <dan@danburkert.com>"]
 license = "Apache-2.0"
 repository = "https://github.com/danburkert/prost"
@@ -24,6 +24,7 @@ members = [
   "protobuf",
   "tests",
   "tests-2015",
+  "tests-no-std",
 ]
 exclude = [
   # The fuzz crate can't be compiled or tested without the 'cargo fuzz' command,
@@ -36,12 +37,13 @@ exclude = [
 bench = false
 
 [features]
-default = ["prost-derive"]
+default = ["prost-derive", "std"]
 no-recursion-limit = []
+std = []
 
 [dependencies]
-bytes = "0.5"
-prost-derive = { version = "0.6.0", path = "prost-derive", optional = true }
+bytes = { version = "0.5", default-features = false }
+prost-derive = { version = "0.6.1", path = "prost-derive", optional = true }
 mopa = "0.2.2"
 serde = "1.0"
 typetag = "0.1"

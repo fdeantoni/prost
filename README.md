@@ -2,6 +2,7 @@
 [![Windows Build Status](https://ci.appveyor.com/api/projects/status/24rpba3x2vqe8lje/branch/master?svg=true)](https://ci.appveyor.com/project/danburkert/prost/branch/master)
 [![Documentation](https://docs.rs/prost/badge.svg)](https://docs.rs/prost/)
 [![Crate](https://img.shields.io/crates/v/prost.svg)](https://crates.io/crates/prost)
+[![Dependency Status](https://deps.rs/repo/github/danburkert/prost/status.svg)](https://deps.rs/repo/github/danburkert/prost)
 
 # *PROST!*
 
@@ -252,6 +253,29 @@ pub struct AddressBook {
     pub people: Vec<Person>,
 }
 ```
+
+## Using `prost` in a `no_std` Crate
+
+`prost` is compatible with `no_std` crates. To enable `no_std` support, disable
+the `std` features in `prost` and `prost-types`:
+
+```
+[dependencies]
+prost = { version = "0.6", default-features = false, features = ["prost-derive"] }
+# Only necessary if using Protobuf well-known types:
+prost-types = { version = "0.6", default-features = false }
+```
+
+Additionally, configure `prost-buid` to output `BTreeMap`s instead of `HashMap`s
+for all Protobuf `map` fields in your `build.rs`:
+
+```rust
+let mut config = prost_build::Config::new();
+config.btree_map(&["."]);
+```
+
+When using edition 2015, it may be necessary to add an `extern crate core;`
+directive to the crate which includes `prost`-generated code.
 
 ## Serializing Existing Types
 

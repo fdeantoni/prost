@@ -1,6 +1,6 @@
 [package]
 name = "prost-types"
-version = "0.6.0"
+version = "0.6.1"
 authors = ["Dan Burkert <dan@danburkert.com>"]
 license = "Apache-2.0"
 repository = "https://github.com/danburkert/prost"
@@ -11,13 +11,19 @@ edition = "2018"
 
 [lib]
 doctest = false
-test = false
+
+[features]
+default = ["std"]
+std = ["prost/std"]
 
 [dependencies]
-bytes = "0.5"
-prost = { version = "0.6.0", path = ".." }
+bytes = { version = "0.5", default-features = false }
+prost = { version = "0.6.1", path = "..", default-features = false, features = ["prost-derive"] }
 
 serde = "1.0"
 serde_json = "1.0"
 typetag = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+proptest = "0.9"
